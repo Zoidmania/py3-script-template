@@ -13,9 +13,10 @@ At a minimum, `click`. At time of writing, we're using Click 8.
 
 Other I've included since I use them commonly:
 
-- pytest
-- tqdm
 - openpyxl
+- pytest
+- tabulate
+- tqdm
 
 ## Testing
 
