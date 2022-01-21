@@ -276,7 +276,7 @@ def open_json_blob(path: str) -> dict:
 def prettify_long_path(path: str) -> str:
     """Condenses absolute path names for pretty-printing."""
     import os
-    return f".../{os.path.basename(path)}" if os.path.basename(path) != path else path
+    return f"/.../{os.path.basename(path)}" if os.path.basename(path) != path else path
 
 
 def read_datetime(x) -> datetime:
