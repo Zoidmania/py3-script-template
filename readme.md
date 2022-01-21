@@ -15,6 +15,7 @@ Other I've included since I use them commonly:
 
 - openpyxl
 - pytest
+- pytz
 - tabulate
 - tqdm
 
