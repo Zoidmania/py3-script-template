@@ -7,6 +7,16 @@
 - Scripts should only live in the project root, **_not_** in `lib/`. Only library code should live
   in `lib/`.
 
-# Testing
+## Dependencies
+
+At a minimum, `click`. At time of writing, we're using Click 8.
+
+Other I've included since I use them commonly:
+
+- pytest
+- tqdm
+- openpyxl
+
+## Testing
 
 Simply call `pytest` from the root of the project.
