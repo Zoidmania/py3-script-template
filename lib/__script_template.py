@@ -2,7 +2,7 @@
 
 """
 [This is a skeleton template for scripts written in this library. Follows Google's Python style
-guide. See https://click.palletsprojects.com/en/8.x/ for more details.]
+guide. See https://click.palletsprojects.com/en/8.0.x/ for more details.]
 
 [Init Date]
 [Author]
