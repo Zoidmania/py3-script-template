@@ -482,3 +482,9 @@ def write_json_blob(doc: dict, path: str, force=False):
             blob = json.dumps(doc, ensure_ascii=False)
             f.write(blob)
 
+
+def verbose_path(path: str) -> str:
+    """Condenses absolute path names for pretty-printing."""
+    import os
+    return f".../{os.path.basename(path)}" if os.path.basename(path) != path else path
+
