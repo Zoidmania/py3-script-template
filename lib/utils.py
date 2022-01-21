@@ -256,6 +256,29 @@ def logger_set_level(level: int) -> int:
     return prev_level
 
 
+def open_json_blob(path: str) -> dict:
+    """A standard way to load a unicode JSON blob from disk, using the built-in ``json`` module.
+
+    Args:
+        path (str): a path to a location on disk.
+
+    Returns:
+        dict: a Python dictionary representation of the JSON data.
+    """
+    import json
+
+    with open(path, 'r', encoding='utf-8') as f:
+        doc = json.loads(f.read())
+
+    return doc
+
+
+def prettify_long_path(path: str) -> str:
+    """Condenses absolute path names for pretty-printing."""
+    import os
+    return f".../{os.path.basename(path)}" if os.path.basename(path) != path else path
+
+
 def read_datetime(x) -> datetime:
     """Builds a datetime object from an ISO-formatted string, or standardizes an existing
     ``datetime`` object.
@@ -282,23 +305,6 @@ def read_datetime(x) -> datetime:
         d.replace(tzinfo=pytz.utc)
 
     return d
-
-
-def open_json_blob(path: str) -> dict:
-    """A standard way to load a unicode JSON blob from disk, using the built-in ``json`` module.
-
-    Args:
-        path (str): a path to a location on disk.
-
-    Returns:
-        dict: a Python dictionary representation of the JSON data.
-    """
-    import json
-
-    with open(path, 'r', encoding='utf-8') as f:
-        doc = json.loads(f.read())
-
-    return doc
 
 
 def slugify(value: str, allow_unicode=False) -> str:
@@ -481,10 +487,4 @@ def write_json_blob(doc: dict, path: str, force=False):
         with open(path, 'w', encoding='utf-8') as f:
             blob = json.dumps(doc, ensure_ascii=False)
             f.write(blob)
-
-
-def verbose_path(path: str) -> str:
-    """Condenses absolute path names for pretty-printing."""
-    import os
-    return f".../{os.path.basename(path)}" if os.path.basename(path) != path else path
 
