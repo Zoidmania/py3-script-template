@@ -11,86 +11,32 @@ from datetime import datetime
 import logging
 
 import click
+from rich.console import Console
+from rich.logging import RichHandler
+from rich.theme import Theme
 
 
 ## Logging Config
 
 
-class ColoredLogFormatter(logging.Formatter):
-
-
-    def __init__(self, msg):
-        logging.Formatter.__init__(self, msg)
-
-
-    def format(self, record):
-        import click
-
-        if record.levelname == "DEBUG":
-            record.levelname = f"[{click.style(record.levelname, fg='bright_magenta')}]   "
-        elif record.levelname == "INFO":
-            record.levelname = f"[{click.style(record.levelname, fg='bright_green')}]    "
-        elif record.levelname == "WARNING":
-            record.levelname = f"[{click.style(record.levelname, fg='bright_yellow')}] "
-        elif record.levelname == "ERROR":
-            record.levelname = f"[{click.style(record.levelname, fg='bright_red')}]   "
-        elif record.levelname == "CRITICAL":
-            record.levelname = f"[{click.style(record.levelname, fg='red')}]"
-
-        return logging.Formatter.format(self, record)
-
-
-class ColorlessLogFormatter(logging.Formatter):
-
-
-    def __init__(self, msg):
-        logging.Formatter.__init__(self, msg)
-
-
-    def format(self, record):
-
-        if record.levelname == "DEBUG":
-            record.levelname = f"[{record.levelname}]   "
-        elif record.levelname == "INFO":
-            record.levelname = f"[{record.levelname}]    "
-        elif record.levelname == "WARNING":
-            record.levelname = f"[{record.levelname}] "
-        elif record.levelname == "ERROR":
-            record.levelname = f"[{record.levelname}]   "
-        elif record.levelname == "CRITICAL":
-            record.levelname = f"[{record.levelname}]"
-
-        return logging.Formatter.format(self, record)
-
-
-class FormattedLogger(logging.Logger):
-
-
-    def __init__(self, name):
-
-        logging.Logger.__init__(self, name, logging.DEBUG)
-
-        console = logging.StreamHandler()
-        console.setFormatter(ColoredLogFormatter("%(levelname)s %(message)s"))
-        self.addHandler(console)
-
-    def add_fh(self, path):
-        fh = logging.FileHandler(path)
-        fh.setFormatter(ColorlessLogFormatter("%(levelname)s %(message)s"))
-        self.addHandler(fh)
-
-
-logging.setLoggerClass(FormattedLogger)
+logging_theme = Theme({
+    "logging.level.debug": "bright_magenta",
+    "logging.level.info": "bright_green",
+    "logging.level.warning": "bright_yellow",
+    "logging.level.error": "bright_red",
+    "logging.level.critical": "white on red",
+})
+handler = RichHandler(markup=True, rich_tracebacks=True, console=Console(theme=logging_theme))
+logging.basicConfig(level="NOTSET", format="%(message)s", datefmt="[%X]", handlers=[handler,])
 
 
 ## Constants
 
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'], max_content_width=100)
-LOGGER = logging.getLogger(__name__)
+LOGGER = logging.getLogger("rich")
 # https://docs.python.org/3/library/logging.html#logging.Logger.setLevel
 LOGGER.setLevel(51) # silent by default
-TQDM_PREFIX = "[" + click.style("INFO", fg='bright_green') + "]    "
 
 
 ## Utilities
@@ -187,36 +133,6 @@ def datetime_is_naive(d: datetime) -> bool:
         bool: True if the datetime isn't localized.
     """
     return d.tzinfo is None or d.tzinfo.utcoffset(d) is None
-
-
-def get_tqdm():
-    """Determines whether the ``tqdm`` function prints anything.
-
-    Debug mode assumes verbose mode, in addition to debug-only output.
-
-    If in verbose mode, print the ``tqdm`` progress bar as normal. If in quiet or debug mode, print
-    nothing.
-
-    Returns:
-        Either the standard ``tqdm.tqdm`` progress bar printer, or an override function that prints
-        nothing.
-    """
-    import logging
-
-    global FORCE
-    global LOGGER
-
-    def __tqdm(iterable, *args, **kwargs):
-        return iterable
-
-    log_level = logger_get_level_name()
-
-    if log_level == "INFO":
-        from tqdm import tqdm
-    else:
-        tqdm = __tqdm
-
-    return tqdm
 
 
 def logger_get_level_name() -> str:
