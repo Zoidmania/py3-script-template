@@ -14,8 +14,21 @@ from datetime import datetime
 
 CAPTURE_LOGS_ALLOWED = False
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'], max_content_width=100)
+
 def configure_logger(verbose=False, force=False, record=False):
-    """Configures logging."""
+    """Configures logging.
+
+    Defined before anything else because logger configuration should be handled first.
+
+    Since logging is handled through ``rich``, we need to enable recording when the logger is
+    instantiated. A separate call to the console object the the logger's handler uses writes the
+    logs to a file.
+
+    Args:
+        verbose (bool): whether verbose output should be emitted.
+        force (bool): whether forced file overwrite is enabled.
+        record (bool): whether to record logs to a file location.
+    """
     import logging
     from rich.console import Console
     from rich.logging import RichHandler
@@ -30,6 +43,8 @@ def configure_logger(verbose=False, force=False, record=False):
     })
     console = Console(theme=theme, record=record)
 
+    # Remove all existing handlers so we can reconfigure the logger with subsequent calls to this
+    # function. See https://stackoverflow.com/a/12158233/2610790.
     for handler in logging.root.handlers:
         logging.root.removeHandler(handler)
 
