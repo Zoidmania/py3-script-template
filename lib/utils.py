@@ -8,63 +8,125 @@ __author__ = "Leland E. Vakarian"
 
 
 from datetime import datetime
-import logging
-
-import click
-from rich.console import Console
-from rich.logging import RichHandler
-from rich.theme import Theme
 
 
-## Logging Config
+## Config
 
-
-logging_theme = Theme({
-    "logging.level.debug": "bright_magenta",
-    "logging.level.info": "bright_green",
-    "logging.level.warning": "bright_yellow",
-    "logging.level.error": "bright_red",
-    "logging.level.critical": "white on red",
-})
-handler = RichHandler(markup=True, rich_tracebacks=True, console=Console(theme=logging_theme))
-logging.basicConfig(level="NOTSET", format="%(message)s", datefmt="[%X]", handlers=[handler,])
-
-
-## Constants
-
-
+CAPTURE_LOGS_ALLOWED = False
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'], max_content_width=100)
-LOGGER = logging.getLogger("rich")
-# https://docs.python.org/3/library/logging.html#logging.Logger.setLevel
-LOGGER.setLevel(51) # silent by default
+def configure_logger(verbose=False, force=False, record=False):
+    """Configures logging."""
+    import logging
+    from rich.console import Console
+    from rich.logging import RichHandler
+    from rich.theme import Theme
+
+    theme = Theme({
+        "logging.level.debug": "bright_magenta",
+        "logging.level.info": "bright_green",
+        "logging.level.warning": "bright_yellow",
+        "logging.level.error": "bright_red",
+        "logging.level.critical": "white on red",
+    })
+    console = Console(theme=theme, record=record)
+
+    for handler in logging.root.handlers:
+        logging.root.removeHandler(handler)
+
+    handler = RichHandler(markup=True, rich_tracebacks=True, console=console)
+    logging.basicConfig(
+        level="NOTSET", format="%(message)s", datefmt="[%X]", handlers=[handler,]
+    )
+
+    logger = logging.getLogger("rich")
+
+    # https://docs.python.org/3/library/logging.html#logging.Logger.setLevel
+    if verbose == 1:
+        logger.setLevel(logging.INFO)
+        logger.info("Verbose output is on!")
+    elif verbose > 1:
+        logger.setLevel(logging.DEBUG)
+        logger.debug("Debug output is on!")
+    else:
+        logger.setLevel(51)
+
+    if verbose and force:
+        logger.warning("Forced overwrite is on!")
+    elif verbose and not force:
+        logger.info("Forced overwrite is off!")
+
+configure_logger()
 
 
 ## Utilities
 
 
-def capture_logs(path: str, force=False):
+def capture_logs(path: str):
     """Captures logging output to the specified path.
 
     Args:
-        path (str): a path to write the JSON blob.
-        force (bool): if True, skip asking for permission to overwrite a file with output. Defaults
-            to False.
+        path (str): a path to write the logs.
     """
+    import logging
     import os
 
-    global LOGGER
+    from rich.logging import RichHandler
+
+    global CAPTURE_LOGS_ALLOWED
+
+    logger = logging.getLogger("rich")
+
+    if not CAPTURE_LOGS_ALLOWED:
+        logger.error(f"Can't write logs to {path}! Skipping!")
+        return
+
+    # find the rich handler for the root logger
+    for handler in logging.root.handlers:
+        if type(handler) == RichHandler:
+            break
+
+    try:
+        console = handler.console
+    except:
+        logger.error("Can't find global console to capture logs!")
+        return
 
     if os.path.dirname(path):
         assert os.path.exists(os.path.dirname(path))
 
+        # clears the recording buffer after writing
+        console.save_text(path)
+
+
+def check_capture_logs(path: str, force=False):
+    """Checks if a file exists at the specified output path, and whether to ask the user before
+    overwriting it.
+
+    Args:
+        path (str): a path to write the logs, or none.
+        force (bool): if True, skip asking for permission to overwrite a file with output. Defaults
+            to False.
+    """
+
+    import logging
+    import os
+
+    global CAPTURE_LOGS_ALLOWED
+
+    logger = logging.getLogger("rich")
+
+    if not path:
+        return
+
     if user_allows_file_overwrite(path, force):
 
+        CAPTURE_LOGS_ALLOWED = True
         if os.path.exists(path):
             os.remove(path)
 
-        LOGGER.add_fh(path)
+    else:
 
-    LOGGER.info(f"User chose to not overwrite existing log output file.")
+        logger.info(f"User chose to not overwrite existing log output file.")
 
 
 def count_file_lines(path: str) -> int:
@@ -145,9 +207,10 @@ def logger_get_level_name() -> str:
         str: the name of the output level of the global logger.
     """
     import logging
-    global LOGGER
 
-    level = LOGGER.getEffectiveLevel()
+    logger = logging.getLogger("rich")
+
+    level = logger.getEffectiveLevel()
     if level > 50:
         return "SILENT"
     else:
@@ -164,10 +227,12 @@ def logger_set_level(level: int) -> int:
         int: the previous logging level.
     """
 
-    global LOGGER
+    import logging
 
-    prev_level = LOGGER.getEffectiveLevel()
-    LOGGER.setLevel(level)
+    logger = logging.getLogger("rich")
+
+    prev_level = logger.getEffectiveLevel()
+    logger.setLevel(level)
 
     return prev_level
 
@@ -240,12 +305,13 @@ def slugify(value: str, allow_unicode=False) -> str:
     Returns:
         str: a slugified string value.
     """
+    import logging
     import re
     import unicodedata
 
-    global LOGGER
+    logger = logging.getLogger("rich")
 
-    LOGGER.debug(f"Slugify input: {value}.")
+    logger.debug(f"Slugify input: {value}.")
 
     value = str(value)
     if allow_unicode:
@@ -255,7 +321,7 @@ def slugify(value: str, allow_unicode=False) -> str:
     value = re.sub(r'[^\w\s-]', '', value.lower())
     value = re.sub(r'[-\s]+', '-', value).strip('-_')
 
-    LOGGER.debug(f"Slugify output: {value}.")
+    logger.debug(f"Slugify output: {value}.")
 
     return value
 
@@ -308,7 +374,7 @@ def user_allows_dir_overwrite(path: str, force=False) -> bool:
 
     import click
 
-    global LOGGER
+    logger = logging.getLogger("rich")
 
     warning = "[" + click.style("WARNING", fg='bright_yellow') + "]"
 
@@ -316,7 +382,7 @@ def user_allows_dir_overwrite(path: str, force=False) -> bool:
 
         if not force:
 
-            if LOGGER.isEnabledFor(logging.ERROR):
+            if logger.isEnabledFor(logging.ERROR):
                 ans = click.confirm((
                     f"{warning}  Directory at '{path}' isn't empty. Do you want to potentially "
                     "overwrite the files within?"
@@ -325,9 +391,9 @@ def user_allows_dir_overwrite(path: str, force=False) -> bool:
                 ans = click.confirm(f"Overwrite '{path}'?")
 
             if ans:
-                LOGGER.warning("    Overwriting file!")
+                logger.warning("    Overwriting file!")
             else:
-                LOGGER.info("    Canceling due to denied overwrite.")
+                logger.info("    Canceling due to denied overwrite.")
                 return False
 
     return True
@@ -353,7 +419,7 @@ def user_allows_file_overwrite(path: str, force=False) -> bool:
 
     import click
 
-    global LOGGER
+    logger = logging.getLogger("rich")
 
     warning = "[" + click.style("WARNING", fg='bright_yellow') + "]"
 
@@ -361,7 +427,7 @@ def user_allows_file_overwrite(path: str, force=False) -> bool:
 
         if not force:
 
-            if LOGGER.isEnabledFor(logging.ERROR):
+            if logger.isEnabledFor(logging.ERROR):
                 ans = click.confirm((
                     f"{warning}  A file exists at the path '{path}'. Do you really want to "
                     "overwrite it?"
@@ -370,9 +436,9 @@ def user_allows_file_overwrite(path: str, force=False) -> bool:
                 ans = click.confirm(f"Overwrite '{path}'?")
 
             if ans:
-                LOGGER.warning("    Overwriting file!")
+                logger.warning("    Overwriting file!")
             else:
-                LOGGER.info("    Canceling due to denied overwrite.")
+                logger.info("    Canceling due to denied overwrite.")
                 return False
 
     return True
@@ -386,21 +452,21 @@ def write_json_blob(doc: dict, path: str, force=False):
         path (str): a path to write the JSON blob.
         force (bool): skip asking for permission to overwrite.
     """
+    import logging
     import json
     import os
     import sys
 
-    global LOGGER
+    logger = logging.getLogger("rich")
 
     try:
         if os.path.dirname(path):
             assert os.path.exists(os.path.dirname(path))
     except AssertionError:
-        LOGGER.error(f"Directory {os.path.dirname(path)} doesn't exist!")
+        logger.error(f"Directory {os.path.dirname(path)} doesn't exist!")
         sys.exit()
 
     if force or user_allows_file_overwrite(path):
         with open(path, 'w', encoding='utf-8') as f:
             blob = json.dumps(doc, ensure_ascii=False)
             f.write(blob)
-
