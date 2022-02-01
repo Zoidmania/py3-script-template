@@ -33,7 +33,8 @@ SAVE_LOGS = None
     type=click.Path(),
     help="Capture logging output (at whatever verbosity level) to the specified path."
 )
-def cli(verbose, force, save_logs):
+@click.pass_context
+def cli(ctx, verbose, force, save_logs):
     """Example functions.
 
     \f
@@ -55,6 +56,7 @@ def cli(verbose, force, save_logs):
 
     from lib.utils import check_capture_logs
     from lib.utils import configure_logger
+    from lib.utils import print_params_debug
 
     global FORCE
     global SAVE_LOGS
@@ -65,6 +67,8 @@ def cli(verbose, force, save_logs):
     configure_logger(verbose=verbose, force=force, record=bool(SAVE_LOGS))
     check_capture_logs(save_logs, force=force)
 
+    print_params_debug(ctx)
+
 
 ## [place sub commands here]
 
@@ -72,7 +76,8 @@ def cli(verbose, force, save_logs):
 @cli.command('download', context_settings=CONTEXT_SETTINGS)
 @click.argument('url', type=str)
 @click.argument('dest_dir', type=click.Path(exists=True, file_okay=False, dir_okay=True))
-def download_cli(url, dest_dir):
+@click.pass_context
+def download_cli(ctx, url, dest_dir):
     """Downloads a file at the given URL to the specified directory.
 
     Mainly to demonstrate how to construct a complex progress bar.
@@ -102,10 +107,13 @@ def download_cli(url, dest_dir):
     from rich.progress import SpinnerColumn
 
     from lib.utils import capture_logs
+    from lib.utils import print_params_debug
     from lib.utils import user_allows_file_overwrite
 
     global FORCE
     global SAVE_LOGS
+
+    print_params_debug(ctx)
 
     logger = logging.getLogger("rich")
 
@@ -188,14 +196,18 @@ def download_cli(url, dest_dir):
 
 
 @cli.command("logging", context_settings=CONTEXT_SETTINGS)
-def logging_cli():
+@click.pass_context
+def logging_cli(ctx):
     """Example logging output at various levels."""
 
     import logging
 
     from lib.utils import capture_logs
+    from lib.utils import print_params_debug
 
     global SAVE_LOGS
+
+    print_params_debug(ctx)
 
     logger = logging.getLogger("rich")
 

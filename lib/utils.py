@@ -9,6 +9,7 @@ __author__ = "Leland E. Vakarian"
 
 from datetime import datetime
 
+from click.core import Context
 
 ## Config
 
@@ -85,8 +86,6 @@ def capture_logs(path: str):
     import logging
     import os
 
-    from rich.logging import RichHandler
-
     global CAPTURE_LOGS_ALLOWED
 
     logger = logging.getLogger("rich")
@@ -95,22 +94,21 @@ def capture_logs(path: str):
         logger.error(f"Can't write logs to {path}! Skipping!")
         return
 
-    # find the rich handler for the root logger
-    for handler in logging.root.handlers:
-        if type(handler) == RichHandler:
-            break
+    console = get_logger_console()
+    if console:
 
-    try:
-        console = handler.console
-    except:
-        logger.error("Can't find global console to capture logs!")
-        return
+        if os.path.dirname(path):
 
-    if os.path.dirname(path):
-        assert os.path.exists(os.path.dirname(path))
+            if os.path.exists(os.path.dirname(path)):
 
-        # clears the recording buffer after writing
-        console.save_text(path)
+                # clears the recording buffer after writing
+                console.save_text(path)
+            else:
+                logger.error("Parent directory to the given path doesn't exist!")
+        else:
+            logger.error("Can't write to local directory!")
+    else:
+        logger.error("No console to capture output from!")
 
 
 def check_capture_logs(path: str, force=False):
@@ -212,6 +210,31 @@ def datetime_is_naive(d: datetime) -> bool:
     return d.tzinfo is None or d.tzinfo.utcoffset(d) is None
 
 
+def get_logger_console():
+    # find the console for the rich handler
+    import logging
+    logger = logging.getLogger("rich")
+    handler = get_logger_handler()
+    try:
+        console = handler.console
+        return console
+    except:
+        logger.error("Can't find global console to capture logs!")
+
+
+def get_logger_handler():
+    # find the rich handler for the root logger
+    import logging
+
+    from rich.logging import RichHandler
+
+    handler = None
+    for handler in logging.root.handlers:
+        if type(handler) == RichHandler:
+            break
+    return handler
+
+
 def logger_get_level_name() -> str:
     """Gets the name of the output level of the global logger.
 
@@ -273,6 +296,47 @@ def prettify_long_path(path: str) -> str:
     """Condenses absolute path names for pretty-printing."""
     import os
     return f"/.../{os.path.basename(path)}" if os.path.basename(path) != path else path
+
+
+def print_params_debug(ctx: Context):
+    """Prints parameter values to the console for debug.
+
+    Args:
+        ctx (click.core.Context): a context object for a called click command.
+    """
+    import logging
+
+    from rich import box
+    from rich.table import Table
+
+    logger = logging.getLogger("rich")
+
+    if logger.getEffectiveLevel() > 10:
+        return
+
+    console = get_logger_console()
+
+    console.rule(f"[bright_magenta]'{str(ctx.command)}' Command Parameters")
+
+    if not ctx.params:
+
+        logger.debug("No parameters for this command!")
+
+    else:
+
+        table = Table(title="Command Parameters", box=box.SIMPLE)
+
+        table.add_column("Param Name", justify="left", style="cyan", no_wrap=True)
+        table.add_column("Param Source", justify="left", style="green", no_wrap=True)
+        table.add_column("Param Type", justify="left", style="magenta", no_wrap=True)
+        table.add_column("Param Value", justify="right", style="white", no_wrap=False)
+
+        for param, value in ctx.params.items():
+            table.add_row(param, str(ctx.get_parameter_source(param)), str(type(value)), str(value))
+
+        console.print(table)
+
+    console.rule()
 
 
 def read_datetime(x) -> datetime:
@@ -391,7 +455,7 @@ def user_allows_dir_overwrite(path: str, force=False) -> bool:
 
     logger = logging.getLogger("rich")
 
-    warning = "[" + click.style("WARNING", fg='bright_yellow') + "]"
+    warning = click.style("WARNING", fg='bright_yellow')
 
     if os.path.isdir(path) and any(os.scandir(path)):
 
@@ -399,16 +463,16 @@ def user_allows_dir_overwrite(path: str, force=False) -> bool:
 
             if logger.isEnabledFor(logging.ERROR):
                 ans = click.confirm((
-                    f"{warning}  Directory at '{path}' isn't empty. Do you want to potentially "
-                    "overwrite the files within?"
+                    f"           {warning}  Directory at '{path}' isn't empty. Do you want to "
+                    "potentially overwrite the files within?"
                 ))
             else:
                 ans = click.confirm(f"Overwrite '{path}'?")
 
             if ans:
-                logger.warning("    Overwriting file!")
+                logger.warning("Overwriting file!")
             else:
-                logger.info("    Canceling due to denied overwrite.")
+                logger.error("Canceling due to denied overwrite.")
                 return False
 
     return True
@@ -436,7 +500,7 @@ def user_allows_file_overwrite(path: str, force=False) -> bool:
 
     logger = logging.getLogger("rich")
 
-    warning = "[" + click.style("WARNING", fg='bright_yellow') + "]"
+    warning = click.style("WARNING", fg='bright_yellow')
 
     if os.path.isfile(path):
 
@@ -444,16 +508,16 @@ def user_allows_file_overwrite(path: str, force=False) -> bool:
 
             if logger.isEnabledFor(logging.ERROR):
                 ans = click.confirm((
-                    f"{warning}  A file exists at the path '{path}'. Do you really want to "
-                    "overwrite it?"
+                    f"           {warning}  A file exists at the path '{path}'. Do you really want "
+                    "to overwrite it?"
                 ))
             else:
                 ans = click.confirm(f"Overwrite '{path}'?")
 
             if ans:
-                logger.warning("    Overwriting file!")
+                logger.warning("Overwriting file!")
             else:
-                logger.info("    Canceling due to denied overwrite.")
+                logger.error("Canceling due to denied overwrite.")
                 return False
 
     return True
