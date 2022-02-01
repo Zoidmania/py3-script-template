@@ -75,6 +75,8 @@ def cli(verbose, force, save_logs):
 def download_cli(url, dest_dir):
     """Downloads a file at the given URL to the specified directory.
 
+    Mainly to demonstrate how to construct a complex progress bar.
+
     \f
 
     Args:
