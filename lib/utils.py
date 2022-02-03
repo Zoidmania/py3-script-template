@@ -253,12 +253,38 @@ def get_progress():
                 pass
             def log(self, *args, **kwargs):
                 pass
+            def print(self, *args, **kwargs):
+                pass
         class Progress:
             def __init__(self, *args, **kwargs):
                 self.console = Console()
+                self.finished = None
+                self.task_ids = None
+            def add_task(self, *args, **kwargs):
+                pass
+            def advance(self, *args, **kwargs):
+                pass
+            def get_renderable(self, *args, **kwargs):
+                pass
+            def get_renderables(self, *args, **kwargs):
+                pass
+            def make_tasks_table(self, *args, **kwargs):
+                pass
+            def refresh(self, *args, **kwargs):
+                pass
+            def remove_task(self, *args, **kwargs):
+                pass
+            def reset(self, *args, **kwargs):
+                pass
+            def start(self, *args, **kwargs):
+                pass
             def start_task(self, *args, **kwargs):
                 pass
-            def add_task(self, *args, **kwargs):
+            def stop(self, *args, **kwargs):
+                pass
+            def stop_task(self, *args, **kwargs):
+                pass
+            def track(self, *args, **kwargs):
                 pass
             def update(self, *args, **kwargs):
                 pass
