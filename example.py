@@ -98,7 +98,6 @@ def download_cli(ctx, url, dest_dir):
 
     from rich.progress import BarColumn
     from rich.progress import DownloadColumn
-    from rich.progress import Progress
     from rich.progress import TaskID
     from rich.progress import TextColumn
     from rich.progress import TimeRemainingColumn
@@ -107,6 +106,7 @@ def download_cli(ctx, url, dest_dir):
     from rich.progress import SpinnerColumn
 
     from lib.utils import capture_logs
+    from lib.utils import get_progress
     from lib.utils import print_params_debug
     from lib.utils import user_allows_file_overwrite
 
@@ -123,7 +123,7 @@ def download_cli(ctx, url, dest_dir):
         done_event.set()
 
     # See https://rich.readthedocs.io/en/latest/progress.html#columns for additional column types.
-    progress = Progress(
+    progress = get_progress()(
 
         # shows that the progress is actively being worked on (not necessary starting with
         # start_task())

@@ -235,6 +235,41 @@ def get_logger_handler():
     return handler
 
 
+def get_progress():
+    """Replaces the Progress class with a dummy so nothing is printed in silent mode.
+
+    Returns:
+        Either the rich.progress.Progress class or a dummy class.
+    """
+    import logging
+
+    logger = logging.getLogger("rich")
+
+    if logger.isEnabledFor(logging.INFO):
+        from rich.progress import Progress
+    else:
+        class Console:
+            def __init__(self, *args, **kwargs):
+                pass
+            def log(self, *args, **kwargs):
+                pass
+        class Progress:
+            def __init__(self, *args, **kwargs):
+                self.console = Console()
+            def start_task(self, *args, **kwargs):
+                pass
+            def add_task(self, *args, **kwargs):
+                pass
+            def update(self, *args, **kwargs):
+                pass
+            def __enter__(self, *args, **kwargs):
+                return self
+            def __exit__(self, *args, **kwargs):
+                pass
+
+    return Progress
+
+
 def logger_get_level_name() -> str:
     """Gets the name of the output level of the global logger.
 
