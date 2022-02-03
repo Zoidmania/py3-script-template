@@ -98,6 +98,7 @@ def download_cli(ctx, url, dest_dir):
 
     from rich.progress import BarColumn
     from rich.progress import DownloadColumn
+    from rich.progress import Progress
     from rich.progress import TaskID
     from rich.progress import TextColumn
     from rich.progress import TimeRemainingColumn
@@ -105,8 +106,8 @@ def download_cli(ctx, url, dest_dir):
     from rich.progress import TimeElapsedColumn
     from rich.progress import SpinnerColumn
 
+    from lib.utils import P_PREFIX
     from lib.utils import capture_logs
-    from lib.utils import get_progress
     from lib.utils import print_params_debug
     from lib.utils import user_allows_file_overwrite
 
@@ -123,14 +124,10 @@ def download_cli(ctx, url, dest_dir):
         done_event.set()
 
     # See https://rich.readthedocs.io/en/latest/progress.html#columns for additional column types.
-    progress = get_progress()(
-
-        # shows that the progress is actively being worked on (not necessary starting with
-        # start_task())
-        SpinnerColumn(),
+    progress = Progress(
 
         # can display arbitrary text, here used as a descriptor of the task progress
-        TextColumn("[bold blue]{task.fields[filename]}", justify="right"),
+        TextColumn(P_PREFIX + "[bold blue]{task.fields[filename]}", justify="right"),
 
         # separator symbol, can be anything (i like pipes)
         "|",
@@ -159,6 +156,9 @@ def download_cli(ctx, url, dest_dir):
 
         # built-in column type that displays instantaneous estimated time remaining
         TimeRemainingColumn(),
+
+        # hide progress display when in silent mode
+        disable=not logger.isEnabledFor(logging.INFO)
     )
 
     signal.signal(signal.SIGINT, handle_sigint)
