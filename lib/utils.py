@@ -172,7 +172,7 @@ def count_file_lines(path: str) -> int:
     return sum(buf.count(b'\n') for buf in f_gen)
 
 
-def count_dir_files(path: str) -> int:
+def count_dir_files(path: str, ftype=None, recursive=False) -> int:
     """Counts the number of files in a directory.
 
     This method is capable of handling extremely large directories with a streaming solution. See
@@ -180,6 +180,9 @@ def count_dir_files(path: str) -> int:
 
     Args:
         path (str): a path to any directory.
+        ftype (str): only files with an extension matching ``ftype`` will be included in the result
+           if populated.
+        recursive (bool): if True, check subdirectories as well. Defaults to False.
 
     Returns:
         int: the number of lines within the given file.
@@ -190,9 +193,12 @@ def count_dir_files(path: str) -> int:
     assert os.path.isdir(path), "Path must be a directory!"
 
     num_files = 0
-    for path in os.scandir(path):
-        if path.is_file():
-            num_files += 1
+    for path_ in os.scandir(path):
+        if path_.is_file():
+            if not ftype or (ftype and str(path_.name).endswith(ftype)):
+                num_files += 1
+        elif recursive and path_.is_dir():
+            num_files += count_dir_files(path_, ftype=ftype, recursive=recursive)
 
     return num_files
 
@@ -524,6 +530,35 @@ def user_allows_file_overwrite(path: str, force=False) -> bool:
     return True
 
 
+def walk_files(path: str, ftype=None, recursive=False):
+    """Generates a list of files in the given directory.
+
+    Args:
+        path (str): a path to any directory.
+        ftype (str): only files with an extension matching ``ftype`` will be included in the result
+           if populated.
+        recursive (bool): if True, check subdirectories as well. Defaults to False.
+
+    Yields:
+        ``os.DirEntry`` objects matching the input criteria.
+    """
+    import os
+
+    assert os.path.isdir(path), "Path must be a directory!"
+
+    for path_ in os.scandir(path):
+
+        if path_.is_file():
+
+            if not ftype or (ftype and str(path_.name).endswith(ftype)):
+
+                yield path_.path
+
+        elif recursive and path_.is_dir():
+
+            yield from walk_files(path_, ftype=ftype, recursive=recursive)
+
+
 def write_json_blob(doc: dict, path: str, force=False):
     """Writes a JSON document in a consistent manner, using the standard ``json`` module.
 
@@ -550,3 +585,4 @@ def write_json_blob(doc: dict, path: str, force=False):
         with open(path, 'w', encoding='utf-8') as f:
             blob = json.dumps(doc, ensure_ascii=False)
             f.write(blob)
+
