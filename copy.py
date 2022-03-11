@@ -46,9 +46,6 @@ def _copy(path, source_dir=None, output_dir=None, overwrite=False):
 
     logger = logging.getLogger("rich")
 
-    with open(path, 'rb') as f:
-        doc = f.read()
-
     p = pathlib.Path(path)
     sd = pathlib.Path(source_dir)
 
@@ -79,8 +76,13 @@ def _copy(path, source_dir=None, output_dir=None, overwrite=False):
         write = True
 
     if write:
+
+        with open(path, 'rb') as f:
+            doc = f.read()
+
         with open(full_output_path, "wb") as f:
             f.write(doc)
+
         logger.debug(f">>> Wrote {full_output_path}")
 
 
@@ -117,8 +119,8 @@ def cli(ctx, verbose, force, save_logs, num_threads, recursive, ftype, source_di
     Local copies only. Reads whole file into memory and write to the specified output directory,
     preserving sub-paths from the input location.
 
-    Note that overwriting files in the OUTPUT-DIR is forced. The `-f` option only applies to an
-    outputted log file (`--save-logs`).
+    Note that overwriting files in the OUTPUT-DIR is forced only when the `-f` option is passed.
+    Otherwise, files are _not_ overwritten.
 
     \b
     Args:
@@ -144,17 +146,11 @@ def cli(ctx, verbose, force, save_logs, num_threads, recursive, ftype, source_di
     from multiprocessing import Pool
     import logging
 
-    from rich.progress import BarColumn
-    from rich.progress import Progress
-    from rich.progress import TaskID
-    from rich.progress import TextColumn
-    from rich.progress import TimeRemainingColumn
-    from rich.progress import TimeElapsedColumn
-
+    from lib.utils import capture_logs
     from lib.utils import check_capture_logs
     from lib.utils import configure_logger
     from lib.utils import count_dir_files
-    from lib.utils import P_PREFIX
+    from lib.utils import get_std_progress_bar
     from lib.utils import print_params_debug
     from lib.utils import walk_files
 
@@ -170,19 +166,7 @@ def cli(ctx, verbose, force, save_logs, num_threads, recursive, ftype, source_di
     ## spool progress bar
 
     logger.info("Spooling...")
-    progress = Progress(
-        TextColumn(P_PREFIX + "[bold blue]{task.fields[filename]}", justify="right"),
-        "|",
-        BarColumn(bar_width=None),
-        "|",
-        "[progress.percentage]{task.percentage:>3.1f}%",
-        "|",
-        TimeElapsedColumn(),
-        "|",
-        TimeRemainingColumn(),
-        # hide progress display when in silent mode
-        disable=not logger.isEnabledFor(logging.INFO)
-    )
+    progress = get_std_progress_bar()
     total_jobs = count_dir_files(source_dir, ftype=ftype, recursive=recursive)
 
     ## start main operation
@@ -212,6 +196,9 @@ def cli(ctx, verbose, force, save_logs, num_threads, recursive, ftype, source_di
     pool.join()
 
     logger.info("Job pool complete.")
+
+    if save_logs:
+        capture_logs(save_logs)
 
 
 if __name__ == '__main__':

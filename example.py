@@ -51,9 +51,6 @@ def cli(ctx, verbose, force, save_logs):
             to False.
         save_logs (str): a path to write captured logging output to.
     """
-    # do this before anything else
-    import logging
-
     from lib.utils import check_capture_logs
     from lib.utils import configure_logger
     from lib.utils import print_params_debug
