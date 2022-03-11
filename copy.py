@@ -20,35 +20,31 @@ import multiprocessing
 
 
 from lib.utils import CONTEXT_SETTINGS
-FORCE = False
-SAVE_LOGS = None
 
 
-## Helpers
+## Lib Functions
 
 
-def _copy_safe(path, source_dir=None, output_dir=None):
+def _copy_safe(path, source_dir=None, output_dir=None, overwrite=False):
     import logging
 
     logger = logging.getLogger("rich")
 
     try:
 
-        _copy(path, source_dir, output_dir)
+        _copy(path, source_dir=source_dir, output_dir=output_dir, overwrite=overwrite)
 
     except Exception as e:
 
         logger.error(f'Job failed: {e}')
 
 
-def _copy(path, source_dir, output_dir):
+def _copy(path, source_dir=None, output_dir=None, overwrite=False):
     import logging
     import os
     import pathlib
 
     logger = logging.getLogger("rich")
-
-    logger.debug(f"Copying: {path}")
 
     with open(path, 'rb') as f:
         doc = f.read()
@@ -63,15 +59,29 @@ def _copy(path, source_dir, output_dir):
     # preserve subpaths from input
     try:
         os.makedirs(output_path)
-        logger.debug(f">>> Created path: {output_path}")
+        logger.debug(f"Created path: {output_path}")
     except FileExistsError:
-        logger.debug(f">>> Path already existed: {output_path}")
+        logger.debug(f"Path already existed: {output_path}")
 
-    full_output_path = os.path.join(output_path, basename)
-    with open(full_output_path, "wb") as f:
-        f.write(doc)
+    # check whether to write output
+    full_output_path = pathlib.Path(os.path.join(output_path, basename))
+    write = False
+    if full_output_path.exists():
+        if full_output_path.is_dir():
+            logger.debug(f"Skipping! Existing directory found at output path: {full_output_path}")
+        elif full_output_path.is_file():
+            if overwrite:
+                logger.debug(f"Overwriting existing file at output path: {full_output_path}")
+                write = True
+            else:
+                logger.debug(f"Skipping! Existing file found at output path: {full_output_path}")
+    else:
+        write = True
 
-    logger.debug(f">>> Wrote {full_output_path}")
+    if write:
+        with open(full_output_path, "wb") as f:
+            f.write(doc)
+        logger.debug(f">>> Wrote {full_output_path}")
 
 
 ## CLI Functions
@@ -79,7 +89,7 @@ def _copy(path, source_dir, output_dir):
 
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.option('-v', '--verbose', count=True, help="Show verbose output. Pass again for debug.")
-@click.option('-f', '--force', is_flag=True, help="Skip asking to overwrite logs.")
+@click.option('-f', '--force', is_flag=True, help="Overwrite existing files.")
 @click.option(
     '-l',
     '--save-logs',
@@ -150,13 +160,7 @@ def cli(ctx, verbose, force, save_logs, num_threads, recursive, ftype, source_di
 
     ## configure
 
-    global FORCE
-    global SAVE_LOGS
-
-    FORCE = force
-    SAVE_LOGS = save_logs
-
-    configure_logger(verbose=verbose, force=force, record=bool(SAVE_LOGS))
+    configure_logger(verbose=verbose, force=force, record=bool(save_logs))
     check_capture_logs(save_logs, force=force)
 
     print_params_debug(ctx)
@@ -165,37 +169,23 @@ def cli(ctx, verbose, force, save_logs, num_threads, recursive, ftype, source_di
 
     ## spool progress bar
 
+    logger.info("Spooling...")
     progress = Progress(
-
-        # can display arbitrary text, here used as a descriptor of the task progress
         TextColumn(P_PREFIX + "[bold blue]{task.fields[filename]}", justify="right"),
-
-        # separator symbol, can be anything (i like pipes)
         "|",
-
-        # the actual progress bar
         BarColumn(bar_width=None),
         "|",
-
-        # an indicator of the progress as a percentage, requires knowing completion target
         "[progress.percentage]{task.percentage:>3.1f}%",
         "|",
-
-        # built-in column type that displays total time elapsed since calling start_task()
         TimeElapsedColumn(),
         "|",
-
-        # built-in column type that displays instantaneous estimated time remaining
         TimeRemainingColumn(),
-
         # hide progress display when in silent mode
         disable=not logger.isEnabledFor(logging.INFO)
     )
-
-    logger.info("Spooling...")
     total_jobs = count_dir_files(source_dir, ftype=ftype, recursive=recursive)
 
-    ## start operation
+    ## start main operation
 
     logger.info(
         f"Starting copy-oa job for {total_jobs} files over {num_threads} threads."
@@ -205,7 +195,7 @@ def cli(ctx, verbose, force, save_logs, num_threads, recursive, ftype, source_di
     for _ in progress.track(
         pool.imap_unordered(
 
-            partial(_copy_safe, source_dir=source_dir, output_dir=output_dir),
+            partial(_copy_safe, source_dir=source_dir, output_dir=output_dir, overwrite=force),
 
             # generator that yields path strings
             walk_files(source_dir, ftype=ftype, recursive=recursive),
