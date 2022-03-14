@@ -256,7 +256,7 @@ def get_std_progress_bar():
     logger = logging.getLogger("rich")
 
     progress = Progress(
-        TextColumn(P_PREFIX + "[bold blue]{task.fields[filename]}", justify="right"),
+        TextColumn(P_PREFIX + "[bold blue]{task.description}", justify="right"),
         "|",
         BarColumn(bar_width=None),
         "|",

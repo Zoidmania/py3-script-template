@@ -175,6 +175,7 @@ def cli(ctx, verbose, force, save_logs, num_threads, recursive, ftype, source_di
         f"Starting copy-oa job for {total_jobs} files over {num_threads} threads."
     )
 
+    progress.start()
     pool = Pool(processes=num_threads)
     for _ in progress.track(
         pool.imap_unordered(
