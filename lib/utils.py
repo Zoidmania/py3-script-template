@@ -246,6 +246,7 @@ def get_std_progress_bar():
     import logging
 
     from rich.progress import BarColumn
+    from rich.progress import MofNCompleteColumn
     from rich.progress import Progress
     from rich.progress import TextColumn
     from rich.progress import TimeRemainingColumn
@@ -260,6 +261,8 @@ def get_std_progress_bar():
         "|",
         BarColumn(bar_width=None),
         "|",
+        MofNCompleteColumn(),
+        "|",
         "[progress.percentage]{task.percentage:>3.1f}%",
         "|",
         TimeElapsedColumn(),
@@ -270,7 +273,6 @@ def get_std_progress_bar():
     )
 
     return progress
-
 
 def logger_get_level_name() -> str:
     """Gets the name of the output level of the global logger.

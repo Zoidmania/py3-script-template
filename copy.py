@@ -172,7 +172,7 @@ def cli(ctx, verbose, force, save_logs, num_threads, recursive, ftype, source_di
     ## start main operation
 
     logger.info(
-        f"Starting copy-oa job for {total_jobs} files over {num_threads} threads."
+        f"Starting copy job for {total_jobs} files over {num_threads} threads."
     )
 
     progress.start()
@@ -186,7 +186,7 @@ def cli(ctx, verbose, force, save_logs, num_threads, recursive, ftype, source_di
             walk_files(source_dir, ftype=ftype, recursive=recursive),
 
             # each thread gets a queue of `chunksize` jobs
-            chunksize=10
+            chunksize=100
         ),
         description="Running parallelized merge jobs",
         total=total_jobs
