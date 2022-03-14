@@ -106,6 +106,10 @@ def _copy(path, source_dir=None, output_dir=None, overwrite=False):
         f"({multiprocessing.cpu_count()} on this machine)."
     )
 )
+@click.option(
+    '-b', '--batch-size', type=int, default=100,
+    help="Number of jobs each worker thread runs before waiting for the next batch."
+)
 @click.option('-r', '--recursive', is_flag=True, help="Scan subdirectories as well.")
 @click.option(
     '--extension', 'ftype', type=str, help="Only operate on files with the given extension."
@@ -113,7 +117,18 @@ def _copy(path, source_dir=None, output_dir=None, overwrite=False):
 @click.argument('source-dir', type=click.Path(exists=True, file_okay=False, dir_okay=True))
 @click.argument('output-dir', type=click.Path(exists=True, file_okay=False, dir_okay=True))
 @click.pass_context
-def cli(ctx, verbose, force, save_logs, num_threads, recursive, ftype, source_dir, output_dir):
+def cli(
+    ctx,
+    verbose,
+    force,
+    save_logs,
+    num_threads,
+    batch_size,
+    recursive,
+    ftype,
+    source_dir,
+    output_dir
+):
     """Multiprocessing file copier.
 
     Local copies only. Reads whole file into memory and write to the specified output directory,
@@ -138,10 +153,13 @@ def cli(ctx, verbose, force, save_logs, num_threads, recursive, ftype, source_di
         force (bool): if True, skip asking for permission to overwrite a file with output. Defaults
             to False.
         save_logs (str): a path to write captured logging output to.
+        num_threads (int): the number of worker threads to parallelize the jobs over. Defaults to
+            the number of CPU threads available on the system.
+        batch_size (int): the number of jobs each worker thread runs before waiting for the next
+            batch. Defaults to 100.
         recursive (bool): if True, check subdirectories as well. Defaults to False.
         ftype (str): a file extension to filter by; only copy files ending with the given extension.
     """
-
     from functools import partial
     from multiprocessing import Pool
     import logging
@@ -186,9 +204,9 @@ def cli(ctx, verbose, force, save_logs, num_threads, recursive, ftype, source_di
             walk_files(source_dir, ftype=ftype, recursive=recursive),
 
             # each thread gets a queue of `chunksize` jobs
-            chunksize=100
+            chunksize=batch_size
         ),
-        description="Running parallelized merge jobs",
+        description="Copying files in parallel",
         total=total_jobs
     ):
         pass # neat trick: https://stackoverflow.com/a/40133278/2610790
