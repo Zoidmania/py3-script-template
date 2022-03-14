@@ -75,15 +75,21 @@ def _copy(path, source_dir=None, output_dir=None, overwrite=False):
     else:
         write = True
 
+    size = 0
     if write:
 
         with open(path, 'rb') as f:
+            f.seek(0, 2) # 1st arg is offset, 2nd arg is 'whence', 2 = end of stream
+            size = f.tell()
+            f.seek(0, 0) # whence 0 = start of stream
             doc = f.read()
 
         with open(full_output_path, "wb") as f:
             f.write(doc)
 
         logger.debug(f">>> Wrote {full_output_path}")
+
+    return size
 
 
 ## CLI Functions
