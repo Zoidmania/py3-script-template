@@ -164,10 +164,14 @@ def cli(
     from multiprocessing import Pool
     import logging
 
+    from rich.live import Live
+    from rich.table import Table
+
     from lib.utils import capture_logs
     from lib.utils import check_capture_logs
     from lib.utils import configure_logger
     from lib.utils import count_dir_files
+    from lib.utils import get_file_transfer_progress_bar
     from lib.utils import get_std_progress_bar
     from lib.utils import print_params_debug
     from lib.utils import walk_files
@@ -181,38 +185,47 @@ def cli(
 
     logger = logging.getLogger("rich")
 
-    ## spool progress bar
+    ## spool progress bars
 
     logger.info("Spooling...")
-    progress = get_std_progress_bar()
-    total_jobs = count_dir_files(source_dir, ftype=ftype, recursive=recursive)
+    total_jobs, total_size = count_dir_files(source_dir, ftype=ftype, recursive=recursive)
+
+    job_progress = get_std_progress_bar()
+    job_task = job_progress.add_task("Files", total=total_jobs)
+
+    xfer_progress = get_file_transfer_progress_bar()
+    xfer_task = xfer_progress.add_task("Size", total=total_size)
+
+    progress_table = Table.grid()
+    progress_table.add_row(job_progress)
+    progress_table.add_row(xfer_progress)
 
     ## start main operation
 
     logger.info(
-        f"Starting copy job for {total_jobs} files over {num_threads} threads."
+        f"Starting parallel copy job for {total_jobs} files over {num_threads} threads."
     )
 
-    progress.start()
     pool = Pool(processes=num_threads)
-    for _ in progress.track(
-        pool.imap_unordered(
+    with Live(progress_table, refresh_per_second=10):
+        for fsize in pool.imap_unordered(
 
-            partial(_copy_safe, source_dir=source_dir, output_dir=output_dir, overwrite=force),
+            partial(
+                _copy_safe, source_dir=source_dir,
+                output_dir=output_dir, overwrite=force
+            ),
 
             # generator that yields path strings
             walk_files(source_dir, ftype=ftype, recursive=recursive),
 
             # each thread gets a queue of `chunksize` jobs
             chunksize=batch_size
-        ),
-        description="Copying files in parallel",
-        total=total_jobs
-    ):
-        pass # neat trick: https://stackoverflow.com/a/40133278/2610790
+        ):
+            job_progress.update(job_task, advance=1)
+            xfer_progress.update(xfer_task, advance=fsize)
 
-    pool.close()
-    pool.join()
+        pool.close()
+        pool.join()
 
     logger.info("Job pool complete.")
 

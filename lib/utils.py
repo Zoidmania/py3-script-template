@@ -242,12 +242,43 @@ def get_logger_handler():
     return handler
 
 
+def get_file_transfer_progress_bar():
+    import logging
+
+    from rich.progress import BarColumn
+    from rich.progress import DownloadColumn
+    from rich.progress import Progress
+    from rich.progress import SpinnerColumn
+    from rich.progress import TextColumn
+    from rich.progress import TransferSpeedColumn
+
+    global P_PREFIX
+
+    logger = logging.getLogger("rich")
+
+    progress = Progress(
+        TextColumn(P_PREFIX + "[bold blue]{task.description}", justify="right"),
+        SpinnerColumn(),
+        "|",
+        BarColumn(bar_width=None),
+        "|",
+        DownloadColumn(),
+        "|",
+        TransferSpeedColumn(),
+        # hide progress display when in silent mode
+        disable=not logger.isEnabledFor(logging.INFO)
+    )
+
+    return progress
+
+
 def get_std_progress_bar():
     import logging
 
     from rich.progress import BarColumn
     from rich.progress import MofNCompleteColumn
     from rich.progress import Progress
+    from rich.progress import SpinnerColumn
     from rich.progress import TextColumn
     from rich.progress import TimeRemainingColumn
     from rich.progress import TimeElapsedColumn
@@ -258,6 +289,7 @@ def get_std_progress_bar():
 
     progress = Progress(
         TextColumn(P_PREFIX + "[bold blue]{task.description}", justify="right"),
+        SpinnerColumn(),
         "|",
         BarColumn(bar_width=None),
         "|",
@@ -273,6 +305,7 @@ def get_std_progress_bar():
     )
 
     return progress
+
 
 def logger_get_level_name() -> str:
     """Gets the name of the output level of the global logger.
