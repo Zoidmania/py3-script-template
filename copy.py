@@ -36,7 +36,7 @@ def _copy_safe(path, source_dir=None, output_dir=None, overwrite=False):
 
     except Exception as e:
 
-        logger.error(f'Job failed: {e}')
+        logger.error(f'Job failed for {path}:\n{e}')
 
 
 def _copy(path, source_dir=None, output_dir=None, overwrite=False):
