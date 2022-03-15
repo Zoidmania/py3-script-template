@@ -137,7 +137,7 @@ def cli(
 ):
     """Multiprocessing file copier.
 
-    Local copies only. Reads whole file into memory and write to the specified output directory,
+    Local copies only. Reads whole file into memory and writes to the specified output directory,
     preserving sub-paths from the input location.
 
     Note that overwriting files in the OUTPUT-DIR is forced only when the `-f` option is passed.
