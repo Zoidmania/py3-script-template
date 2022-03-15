@@ -53,13 +53,6 @@ def _copy(path, source_dir=None, output_dir=None, overwrite=False):
     sub_path = p.parts[len(sd.parts):-1]
     output_path = os.path.join(output_dir, *sub_path)
 
-    # preserve subpaths from input
-    try:
-        os.makedirs(output_path)
-        logger.debug(f"Created path: {output_path}")
-    except FileExistsError:
-        logger.debug(f"Path already existed: {output_path}")
-
     # check whether to write output
     full_output_path = pathlib.Path(os.path.join(output_path, basename))
     write = False
@@ -83,6 +76,13 @@ def _copy(path, source_dir=None, output_dir=None, overwrite=False):
             size = f.tell()
             f.seek(0, 0) # whence 0 = start of stream
             doc = f.read()
+
+        # preserve subpaths from input
+        try:
+            os.makedirs(output_path)
+            logger.debug(f"Created path: {output_path}")
+        except FileExistsError:
+            logger.debug(f"Path already existed: {output_path}")
 
         with open(full_output_path, "wb") as f:
             f.write(doc)
