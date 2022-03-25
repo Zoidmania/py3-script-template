@@ -32,6 +32,8 @@ def configure_logger(verbose=False, force=False, record=False):
         record (bool): whether to record logs to a file location.
     """
     import logging
+
+    import requests
     from rich.console import Console
     from rich.logging import RichHandler
     from rich.theme import Theme
@@ -56,13 +58,16 @@ def configure_logger(verbose=False, force=False, record=False):
     )
 
     logger = logging.getLogger("rich")
+    urllib3_log = logging.getLogger('urllib3')
 
     # https://docs.python.org/3/library/logging.html#logging.Logger.setLevel
     if verbose == 1:
         logger.setLevel(logging.INFO)
+        urllib3_log.setLevel(51)
         logger.info("Verbose output is on!")
     elif verbose > 1:
         logger.setLevel(logging.DEBUG)
+        urllib3_log.setLevel(logging.DEBUG)
         logger.debug("Debug output is on!")
     else:
         logger.setLevel(51)
