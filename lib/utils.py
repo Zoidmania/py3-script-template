@@ -19,7 +19,7 @@ CAPTURE_LOGS_ALLOWED = False
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'], max_content_width=100)
 P_PREFIX = "           [bright_green]INFO[/]     "
 
-def configure_logger(verbose=int, force=False, record=False):
+def configure_logger(verbose=0, force=False, record=False):
     """Configures logging.
 
     Defined before anything else because logger configuration should be handled first.
