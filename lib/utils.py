@@ -11,13 +11,15 @@ from datetime import datetime
 
 from click.core import Context
 
+
 ## Config
+
 
 CAPTURE_LOGS_ALLOWED = False
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'], max_content_width=100)
 P_PREFIX = "           [bright_green]INFO[/]     "
 
-def configure_logger(verbose=False, force=False, record=False):
+def configure_logger(verbose=int, force=False, record=False):
     """Configures logging.
 
     Defined before anything else because logger configuration should be handled first.
@@ -27,7 +29,7 @@ def configure_logger(verbose=False, force=False, record=False):
     logs to a file.
 
     Args:
-        verbose (bool): whether verbose output should be emitted.
+        verbose (int): verbosity level, where < 1 is silent, 1 is verbose, and > 1 is debug.
         force (bool): whether forced file overwrite is enabled.
         record (bool): whether to record logs to a file location.
     """
@@ -190,7 +192,7 @@ def count_dir_files(path: str, ftype=None, recursive=False) -> int:
         recursive (bool): if True, check subdirectories as well. Defaults to False.
 
     Returns:
-        int: the number of lines within the given file.
+        int: the number of files within the given dir.
     """
 
     import os
@@ -206,6 +208,42 @@ def count_dir_files(path: str, ftype=None, recursive=False) -> int:
             num_files += count_dir_files(path_, ftype=ftype, recursive=recursive)
 
     return num_files
+
+
+def count_dir_files_and_size(path: str, ftype=None, recursive=False) -> int:
+    """Counts the number of files in a directory and their total size.
+
+    This method is capable of handling extremely large directories with a streaming solution. See
+    https://docs.python.org/3/library/os.html#os.scandir for details.
+
+    Args:
+        path (str): a path to any directory.
+        ftype (str): only files with an extension matching ``ftype`` will be included in the result
+           if populated.
+        recursive (bool): if True, check subdirectories as well. Defaults to False.
+
+    Returns:
+        2-tuple: (int, int): the number of files within the given dir, and the total size in bytes.
+    """
+
+    import os
+
+    assert os.path.isdir(path), "Path must be a directory!"
+
+    num_files = 0
+    total_size = 0
+    for path_ in os.scandir(path):
+        if path_.is_file():
+            if not ftype or (ftype and str(path_.name).endswith(ftype)):
+                num_files += 1
+                total_size += os.path.getsize(path_)
+
+        elif recursive and path_.is_dir():
+            num_files_, total_size_ = count_dir_files(path_, ftype=ftype, recursive=recursive)
+            num_files += num_files_
+            total_size += total_size_
+
+    return num_files, total_size
 
 
 def datetime_is_naive(d: datetime) -> bool:
@@ -271,7 +309,7 @@ def get_file_transfer_progress_bar():
         "|",
         TransferSpeedColumn(),
         # hide progress display when in silent mode
-        disable=not logger.isEnabledFor(logging.INFO)
+        disable=logger.level != logging.INFO
     )
 
     return progress
@@ -306,7 +344,7 @@ def get_std_progress_bar():
         "|",
         TimeRemainingColumn(),
         # hide progress display when in silent mode
-        disable=not logger.isEnabledFor(logging.INFO)
+        disable=logger.level != logging.INFO
     )
 
     return progress
@@ -508,6 +546,40 @@ def sorted_dicts_are_equal(a: dict, b: dict) -> bool:
             bools.append(False)
 
     return all(bools)
+
+
+def trim_dict(doc):
+    """Trims whitespace from all string values in the dictionary.
+
+    Does not trim string keys. Also converts any tuples to lists.
+
+    Args:
+        doc (dict): a document to trim.
+
+    Returns:
+        dict: a clone of the dictionary with trimmed whitespace for all values of type string.
+    """
+
+    for k, v in doc.items():
+        if type(v) == str:
+            doc[k] = v.strip()
+        elif type(v) == list:
+            for i in range(len(v)):
+                if type(doc[k][i]) == str:
+                    doc[k][i] = doc[k][i].strip()
+                elif type(doc[k][i]) == dict:
+                    doc[k][i] = trim_dict(doc[k][i])
+        elif type(v) == tuple:
+            new = [x for x in v]
+            for i in range(len(new)):
+                if type(new[i]) == str:
+                    new[i] = new[i].strip()
+                elif type(new[i]) == dict:
+                    new[i] = trim_dict(new[i])
+            doc[k] = new
+        elif type(v) == dict:
+            doc[k] = trim_dict(v)
+    return doc
 
 
 def user_allows_dir_overwrite(path: str, force=False) -> bool:
