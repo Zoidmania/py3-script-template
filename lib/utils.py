@@ -10,6 +10,8 @@ __author__ = "Leland E. Vakarian"
 from datetime import datetime
 
 from click.core import Context
+from rich.progress import ProgressColumn
+from rich.progress_bar import ProgressBar
 
 
 ## Config
@@ -80,6 +82,54 @@ def configure_logger(verbose=0, force=False, record=False):
         logger.info("Forced overwrite is off!")
 
 configure_logger()
+
+
+## Classes
+
+
+class IndeterminateBarColumn(ProgressColumn):
+    """Renders a visual indeterminate progress bar.
+
+    Modification of the built-in `rich.progress.BarColumn` class, using `rich` v12.0.1.
+
+    Args:
+        bar_width (Optional[int], optional): Width of bar or None for full width. Defaults to 40.
+        style (StyleType, optional): Style for the bar background. Defaults to "bar.back".
+        complete_style (StyleType, optional): Style for the completed bar. Defaults to
+            "bar.complete".
+        finished_style (StyleType, optional): Style for a finished bar. Defaults to "bar.done".
+        pulse_style (StyleType, optional): Style for pulsing bars. Defaults to "bar.pulse".
+    """
+
+    def __init__(
+        self,
+        bar_width = 40,
+        style = "bar.back",
+        complete_style = "bar.complete",
+        finished_style = "bar.finished",
+        pulse_style = "bar.pulse",
+        table_column = None,
+    ) -> None:
+        self.bar_width = bar_width
+        self.style = style
+        self.complete_style = complete_style
+        self.finished_style = finished_style
+        self.pulse_style = pulse_style
+        super().__init__(table_column=table_column)
+
+    def render(self, task: "Task") -> ProgressBar:
+        """Gets a progress bar widget for a task."""
+        return ProgressBar(
+            total=max(0, task.total),
+            completed=max(0, task.completed),
+            width=None if self.bar_width is None else max(1, self.bar_width),
+            pulse=True,
+            animation_time=task.get_time(),
+            style=self.style,
+            complete_style=self.complete_style,
+            finished_style=self.finished_style,
+            pulse_style=self.pulse_style,
+        )
 
 
 ## Utilities
@@ -308,6 +358,37 @@ def get_file_transfer_progress_bar():
         DownloadColumn(),
         "|",
         TransferSpeedColumn(),
+        # hide progress display when in silent mode
+        disable=logger.level != logging.INFO
+    )
+
+    return progress
+
+
+def get_indeterminate_progress_bar():
+    import logging
+
+    from rich.progress import BarColumn
+    from rich.progress import MofNCompleteColumn
+    from rich.progress import Progress
+    from rich.progress import SpinnerColumn
+    from rich.progress import TextColumn
+    from rich.progress import TimeRemainingColumn
+    from rich.progress import TimeElapsedColumn
+
+    global P_PREFIX
+
+    logger = logging.getLogger("rich")
+
+    progress = Progress(
+        TextColumn(P_PREFIX + "[bold blue]{task.description}", justify="right"),
+        SpinnerColumn(),
+        "|",
+        IndeterminateBarColumn(bar_width=None),
+        "|",
+        TextColumn("[green]{task.completed}", justify="right"),
+        "|",
+        TimeElapsedColumn(),
         # hide progress display when in silent mode
         disable=logger.level != logging.INFO
     )
@@ -727,4 +808,5 @@ def write_json_blob(doc: dict, path: str, force=False):
         with open(path, 'w', encoding='utf-8') as f:
             blob = json.dumps(doc, ensure_ascii=False)
             f.write(blob)
+
 
