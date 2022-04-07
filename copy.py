@@ -32,11 +32,12 @@ def _copy_safe(path, source_dir=None, output_dir=None, overwrite=False):
 
     try:
 
-        _copy(path, source_dir=source_dir, output_dir=output_dir, overwrite=overwrite)
+        return _copy(path, source_dir=source_dir, output_dir=output_dir, overwrite=overwrite)
 
     except Exception as e:
 
         logger.error(f'Job failed for {path}: {e}')
+        return 0
 
 
 def _copy(path, source_dir=None, output_dir=None, overwrite=False):
@@ -46,7 +47,7 @@ def _copy(path, source_dir=None, output_dir=None, overwrite=False):
 
     logger = logging.getLogger("rich")
 
-    p = pathlib.Path(path)
+    p = pathlib.Path(path.path)
     sd = pathlib.Path(source_dir)
 
     basename = p.parts[-1]
@@ -99,10 +100,7 @@ def _copy(path, source_dir=None, output_dir=None, overwrite=False):
 @click.option('-v', '--verbose', count=True, help="Show verbose output. Pass again for debug.")
 @click.option('-f', '--force', is_flag=True, help="Overwrite existing files.")
 @click.option(
-    '-l',
-    '--save-logs',
-    'save_logs',
-    type=click.Path(),
+    '--save-logs', 'save_logs', type=click.Path(),
     help="Capture logging output (at whatever verbosity level) to the specified path."
 )
 @click.option(
@@ -176,7 +174,7 @@ def cli(
     from lib.utils import capture_logs
     from lib.utils import check_capture_logs
     from lib.utils import configure_logger
-    from lib.utils import count_dir_files
+    from lib.utils import count_dir_files_and_size
     from lib.utils import get_file_transfer_progress_bar
     from lib.utils import get_std_progress_bar
     from lib.utils import print_params_debug
@@ -194,7 +192,7 @@ def cli(
     ## spool progress bars
 
     logger.info("Spooling...")
-    total_jobs, total_size = count_dir_files(source_dir, ftype=ftype, recursive=recursive)
+    total_jobs, total_size = count_dir_files_and_size(source_dir, ftype=ftype, recursive=recursive)
 
     job_progress = get_std_progress_bar()
     job_task = job_progress.add_task("Files", total=total_jobs)

@@ -775,7 +775,7 @@ def walk_files(path: str, ftype=None, recursive=False):
 
             if not ftype or (ftype and str(path_.name).endswith(ftype)):
 
-                yield path_.path
+                yield path_
 
         elif recursive and path_.is_dir():
 
