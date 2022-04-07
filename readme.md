@@ -1,5 +1,7 @@
 # Python CLIs
 
+[[_TOC_]]
+
 - Using Python 3.10
 - Scripts should be executable, with `bash` shebangs. Library files should not have shebangs and not
   be executable.
