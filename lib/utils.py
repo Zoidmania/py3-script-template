@@ -310,8 +310,11 @@ def datetime_is_naive(d: datetime) -> bool:
     return d.tzinfo is None or d.tzinfo.utcoffset(d) is None
 
 
-def generic_repr(obj):
+def generic_object_repr(obj):
     """Builds a `repr` string from a generic object.
+
+    Only works for classes where constructor parameters have a corresponding attribute of the same
+    name, much like a `dataclass` would.
 
     Args:
         obj (*): any object.
@@ -319,33 +322,31 @@ def generic_repr(obj):
     Returns:
         str: a `repr` string suitable for the given object.
     """
+    from inspect import Parameter
     from inspect import signature
 
     sig = signature(obj.__class__)
     cname = obj.__class__.__name__
 
-    _ = list(sig.parameters.keys())[0]
-    POSITIONAL_ONLY = sig.parameters[_].POSITIONAL_ONLY
-    POSITIONAL_OR_KEYWORD = sig.parameters[_].POSITIONAL_OR_KEYWORD
-    KEYWORD_ONLY = sig.parameters[_].KEYWORD_ONLY
+    args = [Parameter.POSITIONAL_ONLY, Parameter.VAR_POSITIONAL,]
+    kwargs = [Parameter.POSITIONAL_OR_KEYWORD, Parameter.KEYWORD_ONLY, Parameter.VAR_KEYWORD,]
 
     rendered_params = []
     for param in sig.parameters:
 
         attr = getattr(obj, param)
 
-        if sig.parameters[param].kind == POSITIONAL_ONLY:
+        if sig.parameters[param].kind in args:
 
-            rendered_params.append(sig.parameters[param].replace(name=attr))
+            rendered_params.append(sig.parameters[param].replace(name=attr.value))
 
-        elif sig.parameters[param].kind in [POSITIONAL_OR_KEYWORD, KEYWORD_ONLY]:
+        elif sig.parameters[param].kind in kwargs:
 
-            rendered_params.append(sig.parameters[param].replace(default=attr))
+            rendered_params.append(sig.parameters[param].replace(default=attr.value))
 
     new_sig = sig.replace(parameters=rendered_params)
 
     return f"{cname}{str(new_sig)}"
-
 
 def get_logger_console():
     # find the console for the rich handler
