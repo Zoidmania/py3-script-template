@@ -348,6 +348,7 @@ def generic_object_repr(obj):
 
     return f"{cname}{str(new_sig)}"
 
+
 def get_logger_console():
     # find the console for the rich handler
     import logging
