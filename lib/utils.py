@@ -10,6 +10,7 @@ __author__ = "Leland E. Vakarian"
 from datetime import datetime
 
 from click.core import Context
+from rich.progress import Progress
 from rich.progress import ProgressColumn
 from rich.progress_bar import ProgressBar
 
@@ -508,6 +509,37 @@ def logger_set_level(level: int) -> int:
     logger.setLevel(level)
 
     return prev_level
+
+
+def make_progress_msg(msg: str) -> Progress:
+    """Constructs a simple progress message with a spinner.
+
+    Args:
+        msg: a string to display in the progress bar.
+
+    Returns:
+        A progress bar with only a message and a spinner to indicate activity.
+
+    Usage:
+
+        p = make_progress_msg("I'm a task!")
+        p.start()
+        # do something long-running
+        p.stop()
+    """
+    from rich.progress import Progress
+    from rich.progress import SpinnerColumn
+    from rich.progress import TextColumn
+
+    from cspan_api.utils import P_PREFIX
+
+    p = Progress(
+        TextColumn(P_PREFIX + "{task.description}", justify="left"),
+        SpinnerColumn(),
+    )
+    p.add_task(msg, total=1)
+
+    return p
 
 
 def open_json_blob(path: str) -> dict:
