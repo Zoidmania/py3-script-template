@@ -349,31 +349,6 @@ def generic_object_repr(obj):
     return f"{cname}{str(new_sig)}"
 
 
-def get_logger_console():
-    # find the console for the rich handler
-    import logging
-    logger = logging.getLogger("rich")
-    handler = get_logger_handler()
-    try:
-        console = handler.console
-        return console
-    except:
-        logger.error("Can't find global console to capture logs!")
-
-
-def get_logger_handler():
-    # find the rich handler for the root logger
-    import logging
-
-    from rich.logging import RichHandler
-
-    handler = None
-    for handler in logging.root.handlers:
-        if type(handler) == RichHandler:
-            break
-    return handler
-
-
 def get_file_transfer_progress_bar():
     import logging
 
@@ -433,6 +408,56 @@ def get_indeterminate_progress_bar():
     )
 
     return progress
+
+
+def get_live():
+    """Get a Live console class based on the verbosity level.
+
+    If the logger is set to logging.INFO, then return rich.live.Live. Otherwise, return a dummy
+    class.
+    """
+    import logging
+
+    logger = logging.getLogger("st-ingest")
+
+    class __live:
+        def __init__(*args, **kawrgs):
+            pass
+        def __enter__(self):
+            pass
+        def __exit__(self, *args, **kwargs):
+            pass
+
+    if logger.level == logging.INFO:
+        from rich.live import Live
+        return Live
+    else:
+        return __live
+
+
+def get_logger_console():
+    # find the console for the rich handler
+    import logging
+    logger = logging.getLogger("rich")
+    handler = get_logger_handler()
+    try:
+        console = handler.console
+        return console
+    except:
+        logger.error("Can't find global console to capture logs!")
+
+
+def get_logger_handler():
+    # find the rich handler for the root logger
+    import logging
+
+    from rich.logging import RichHandler
+
+    handler = None
+    for handler in logging.root.handlers:
+        if type(handler) == RichHandler:
+            break
+    return handler
 
 
 def get_std_progress_bar():
