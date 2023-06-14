@@ -408,12 +408,9 @@ def get_file_transfer_progress_bar():
 def get_indeterminate_progress_bar():
     import logging
 
-    from rich.progress import BarColumn
-    from rich.progress import MofNCompleteColumn
     from rich.progress import Progress
     from rich.progress import SpinnerColumn
     from rich.progress import TextColumn
-    from rich.progress import TimeRemainingColumn
     from rich.progress import TimeElapsedColumn
 
     global P_PREFIX
