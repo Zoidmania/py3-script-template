@@ -350,31 +350,6 @@ def generic_object_repr(obj):
     return f"{cname}{str(new_sig)}"
 
 
-def get_logger_console():
-    # find the console for the rich handler
-    import logging
-    logger = logging.getLogger("rich")
-    handler = get_logger_handler()
-    try:
-        console = handler.console
-        return console
-    except:
-        logger.error("Can't find global console to capture logs!")
-
-
-def get_logger_handler():
-    # find the rich handler for the root logger
-    import logging
-
-    from rich.logging import RichHandler
-
-    handler = None
-    for handler in logging.root.handlers:
-        if type(handler) == RichHandler:
-            break
-    return handler
-
-
 def get_file_transfer_progress_bar():
     import logging
 
@@ -431,6 +406,56 @@ def get_indeterminate_progress_bar():
     )
 
     return progress
+
+
+def get_live():
+    """Get a Live console class based on the verbosity level.
+
+    If the logger is set to logging.INFO, then return rich.live.Live. Otherwise, return a dummy
+    class.
+    """
+    import logging
+
+    logger = logging.getLogger("st-ingest")
+
+    class __live:
+        def __init__(*args, **kawrgs):
+            pass
+        def __enter__(self):
+            pass
+        def __exit__(self, *args, **kwargs):
+            pass
+
+    if logger.level == logging.INFO:
+        from rich.live import Live
+        return Live
+    else:
+        return __live
+
+
+def get_logger_console():
+    # find the console for the rich handler
+    import logging
+    logger = logging.getLogger("rich")
+    handler = get_logger_handler()
+    try:
+        console = handler.console
+        return console
+    except:
+        logger.error("Can't find global console to capture logs!")
+
+
+def get_logger_handler():
+    # find the rich handler for the root logger
+    import logging
+
+    from rich.logging import RichHandler
+
+    handler = None
+    for handler in logging.root.handlers:
+        if type(handler) == RichHandler:
+            break
+    return handler
 
 
 def get_std_progress_bar():
@@ -819,6 +844,42 @@ def user_allows_file_overwrite(path: str, force=False) -> bool:
                 return False
 
     return True
+
+
+def walk_dirs(path: str, recursive=False, dict_=False):
+    """Generates directories in the given directory.
+
+    Args:
+        path (str): a path to any directory.
+        recursive (bool): if True, check subdirectories as well. Defaults to False.
+        dict_ (bool): if True, yield Python Dictionaries instead of DirEntry objects.
+
+    Yields:
+        ``os.DirEntry`` objects matching the input criteria.
+    """
+    import os
+
+    assert os.path.isdir(path), "Path must be a directory!"
+
+    for path_ in os.scandir(path):
+
+        if path_.is_dir():
+
+            if dict_:
+                yield {
+                    "inode": path_.inode(),
+                    "is_dir": path_.is_dir(),
+                    "is_file": path_.is_file(),
+                    "name": path_.name,
+                    "path": path_.path,
+                    "stat": path_.stat(),
+                }
+            else:
+                yield path_
+
+        if recursive:
+
+            yield from walk_dirs(path_, recursive=recursive, dict_=dict_)
 
 
 def walk_files(path: str, ftype=None, recursive=False):
